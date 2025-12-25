@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Gestión de Eventos</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            background: linear-gradient(135deg, #667eea, #764ba2); 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            margin: 0; 
+        }
+        .login-box { 
+            background: white; 
+            padding: 40px; 
+            border-radius: 12px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3); 
+            width: 350px; 
+            text-align: center;
+        }
+        h2 { margin-bottom: 30px; color: #333; }
+        input { 
+            width: 100%; 
+            padding: 12px; 
+            margin: 12px 0; 
+            border: 1px solid #ccc; 
+            border-radius: 6px; 
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        button { 
+            width: 100%; 
+            padding: 14px; 
+            background: #4e54c8; 
+            color: white; 
+            border: none; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-size: 16px; 
+            margin-top: 10px;
+        }
+        button:hover { background: #3b3f9e; }
+        #msg { 
+            color: red; 
+            margin-top: 15px; 
+            font-weight: bold;
+        }
+        .attempts { color: #888; font-size: 14px; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="login-box">
+        <h2>Gestión de Eventos</h2>
+        <p style="color: #666; margin-bottom: 20px;">Acceso restringido</p>
+        
+        <input type="text" id="username" placeholder="Usuario" autocomplete="username">
+        <input type="password" id="password" placeholder="Contraseña" autocomplete="current-password">
+        
+        <button onclick="login()">Iniciar Sesión</button>
+        
+        <p id="msg"></p>
+        <p class="attempts" id="attempts-left"></p>
+    </div>
+
+    <script>
+        // ==== CAMBIA ESTOS VALORES POR LOS TUYOS ====
+        const USUARIO_CORRECTO = "Andy2005";        // Cambia por tu usuario deseado
+        const CONTRASENA_CORRECTA = "sanchezandys2";  // Cambia por una contraseña fuerte
+        // ============================================
+
+        let intentosFallidos = 0;
+        const MAX_INTENTOS = 5;
+
+        function login() {
+            const user = document.getElementById('username').value.trim();
+            const pass = document.getElementById('password').value;
+
+            const msg = document.getElementById('msg');
+            const attempts = document.getElementById('attempts-left');
+
+            // Limpiar mensaje anterior
+            msg.textContent = '';
+            attempts.textContent = '';
+
+            if (user === '' || pass === '') {
+                msg.textContent = 'Por favor, complete ambos campos';
+                return;
+            }
+
+            if (user === USUARIO_CORRECTO && pass === CONTRASENA_CORRECTA) {
+                // Login exitoso
+                sessionStorage.setItem('loggedIn', 'true');
+                sessionStorage.setItem('user', user);
+                msg.style.color = 'green';
+                msg.textContent = '¡Acceso concedido! Redirigiendo...';
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html';
+                }, 1000);
+            } else {
+                // Login fallido
+                intentosFallidos++;
+                const restantes = MAX_INTENTOS - intentosFallidos;
+                
+                msg.textContent = 'Usuario o contraseña incorrectos';
+                
+                if (restantes > 0) {
+                    attempts.textContent = `Intentos restantes: ${restantes}`;
+                } else {
+                    attempts.textContent = 'Demasiados intentos. Acceso bloqueado temporalmente.';
+                    document.querySelector('button').disabled = true;
+                    setTimeout(() => {
+                        intentosFallidos = 0;
+                        document.querySelector('button').disabled = false;
+                        attempts.textContent = '';
+                        msg.textContent = 'Puede intentarlo de nuevo';
+                    }, 60000); // Bloqueo por 1 minuto
+                }
+            }
+        }
+
+        // Permitir login con Enter
+        document.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                login();
+            }
+        });
+    </script>
+</body>
+</html>

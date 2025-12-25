@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Gestión de Eventos</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; display: flex; background: #f4f6f9; }
+        .sidebar { width: 250px; background: #343a40; color: white; height: 100vh; position: fixed; padding-top: 20px; }
+        .sidebar h2 { text-align: center; margin-bottom: 30px; }
+        .sidebar a { display: block; color: white; padding: 15px 20px; text-decoration: none; cursor: pointer; }
+        .sidebar a:hover { background: #495057; }
+        .content { margin-left: 250px; padding: 30px; width: calc(100% - 250px); }
+        .card { background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        h1 { color: #333; margin-top: 0; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background: #f8f9fa; }
+        button { padding: 8px 14px; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; }
+        button:hover { opacity: 0.9; }
+        button.agregar { background: #28a745; color: white; margin-bottom: 15px; font-size: 16px; padding: 10px 20px; }
+        button.edit { background: #ffc107; color: black; }
+        button.delete { background: #dc3545; color: white; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background: white; padding: 30px; border-radius: 10px; width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto; }
+        input, select, textarea { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        #preview { max-width: 200px; margin-top: 10px; border-radius: 8px; }
+        .modal-buttons { margin-top: 20px; text-align: right; }
+        .modal-buttons button { margin-left: 10px; padding: 10px 20px; }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <h2>Gestión de Eventos</h2>
+        <a id="menu-dashboard">Dashboard</a>
+        <a id="menu-eventos">Eventos</a>
+        <a id="menu-ubicaciones">Ubicaciones</a>
+        <a id="menu-contactos">Contactos</a>
+        <a id="menu-logout">Cerrar Sesión</a>
+    </div>
+
+    <div class="content" id="main-content">
+        <div class="card">
+            <h1>Bienvenido al Sistema</h1>
+            <p>Selecciona un módulo del menú para comenzar.</p>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <h2 id="modal-title">Agregar</h2>
+            <div id="modal-form"></div>
+            <div class="modal-buttons">
+                <button id="btn-cancelar">Cancelar</button>
+                <button style="background:#28a745; color:white;" id="btn-guardar">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+        // ====== TUS CREDENCIALES REALES DE SUPABASE ======
+        const supabaseUrl = 'https://yyqcevvvgsncnerrzqfz.supabase.co';     // ← Cambia por tu Project URL
+        const supabaseAnonKey = 'sb_publishable_2wJO7aUm5en5BHgOXZnklw_vugKJzjd';           // ← Cambia por tu anon public key
+        // ================================================
+
+        const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+        if (!sessionStorage.getItem('loggedIn')) {
+            window.location.href = 'index.html';
+        }
+
+        let currentModule = '';
+        let currentEditId = null;
+
+        // Eventos del menú
+        document.getElementById('menu-dashboard').addEventListener('click', loadDashboard);
+        document.getElementById('menu-eventos').addEventListener('click', () => loadModule('eventos'));
+        document.getElementById('menu-ubicaciones').addEventListener('click', () => loadModule('ubicaciones'));
+        document.getElementById('menu-contactos').addEventListener('click', () => loadModule('contactos'));
+        document.getElementById('menu-logout').addEventListener('click', logout);
+
+        // Eventos del modal
+        document.getElementById('btn-cancelar').addEventListener('click', closeModal);
+        document.getElementById('btn-guardar').addEventListener('click', saveCurrent);
+
+        function loadDashboard() {
+            document.getElementById('main-content').innerHTML = `
+                <div class="card">
+                    <h1>Bienvenido al Dashboard</h1>
+                    <p>Usa el menú lateral para gestionar los módulos.</p>
+                </div>`;
+        }
+
+        async function loadModule(module) {
+            currentModule = module;
+            const title = module.charAt(0).toUpperCase() + module.slice(1);
+
+            const { data, error } = await supabase.from(module).select('*').order('id', { ascending: false });
+
+            if (error) {
+                console.error('Error:', error);
+                alert('Error al cargar datos: ' + error.message);
+                return;
+            }
+
+            const rows = data.map(item => `
+                <tr>
+                    <td>${item.titulo || item.nombre_completo || item.direccion || '—'}</td>
+                    <td>${item.fecha || item.email || item.coordenadas || '—'}</td>
+                    <td>
+                        <button class="edit" data-id="${item.id}">Editar</button>
+                        <button class="delete" data-id="${item.id}">Eliminar</button>
+                    </td>
+                </tr>
+            `).join('') || '<tr><td colspan="3">No hay datos</td></tr>';
+
+            document.getElementById('main-content').innerHTML = `
+                <div class="card">
+                    <h1>${title}</h1>
+                    <button class="agregar" id="btn-agregar">+ Agregar Nuevo</button>
+                    <table>
+                        <thead><tr><th>Nombre/Título</th><th>Detalle</th><th>Acciones</th></tr></thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>`;
+
+            // Eventos dinámicos para botones de la tabla y agregar
+            document.getElementById('btn-agregar').addEventListener('click', () => openAdd(module));
+
+            document.querySelectorAll('button.edit').forEach(btn => {
+                btn.addEventListener('click', () => openEdit(module, btn.dataset.id));
+            });
+
+            document.querySelectorAll('button.delete').forEach(btn => {
+                btn.addEventListener('click', () => deleteItem(module, btn.dataset.id));
+            });
+        }
+
+        function openAdd(module) {
+            currentEditId = null;
+            openModal(module, 'Agregar');
+        }
+
+        function openEdit(module, id) {
+            currentEditId = id;
+            supabase.from(module).select('*').eq('id', id).single().then(({ data, error }) => {
+                if (error) return alert('Error cargando datos');
+                openModal(module, 'Editar');
+                setTimeout(() => fillForm(data), 100);
+            });
+        }
+
+        async function openModal(module, action) {
+            let form = '';
+            const title = `${action} ${module === 'eventos' ? 'Evento' : module === 'ubicaciones' ? 'Ubicación' : 'Contacto'}`;
+
+            if (module === 'eventos') {
+                const { data: contactos } = await supabase.from('contactos').select('nombre_completo');
+                const { data: ubicaciones } = await supabase.from('ubicaciones').select('titulo');
+
+                form = `
+                    <input type="text" id="titulo" placeholder="Título del evento" required>
+                    <select id="invitados" multiple size="5">
+                        ${(contactos || []).map(c => `<option value="${c.nombre_completo}">${c.nombre_completo}</option>`).join('')}
+                    </select>
+                    <input type="datetime-local" id="fecha" required>
+                    <input type="text" id="zona_horaria" placeholder="Ej: America/Bogota">
+                    <textarea id="descripcion" placeholder="Descripción"></textarea>
+                    <select id="repeticion"><option>Ninguna</option><option>Diaria</option><option>Semanal</option><option>Mensual</option></select>
+                    <input type="text" id="recordatorio" placeholder="Recordatorio">
+                    <select id="clasificacion"><option>Conferencia</option><option>Taller</option><option>Seminario</option></select>
+                    <select id="lugar">
+                        ${(ubicaciones || []).map(u => `<option value="${u.titulo}">${u.titulo}</option>`).join('')}
+                    </select>`;
+            } else if (module === 'ubicaciones') {
+                form = `
+                    <input type="text" id="titulo" placeholder="Título" required>
+                    <input type="text" id="direccion" placeholder="Dirección completa" required>
+                    <input type="text" id="coordenadas" placeholder="Lat,Long (ej: 4.6097,-74.0817)" required>`;
+            } else if (module === 'contactos') {
+                form = `
+                    <input type="text" id="saludo" placeholder="Saludo (Sr./Sra.)">
+                    <input type="text" id="nombre_completo" placeholder="Nombre completo" required>
+                    <input type="text" id="numero_id" placeholder="Número de identificación" required>
+                    <input type="email" id="email" placeholder="Correo electrónico" required>
+                    <input type="tel" id="telefono" placeholder="Teléfono">
+                    <input type="file" id="foto" accept="image/*">
+                    <img id="preview" style="display:none;">`;
+            }
+
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('modal-form').innerHTML = form;
+            document.getElementById('modal').style.display = 'flex';
+        }
+
+        function fillForm(data) {
+            Object.keys(data).forEach(key => {
+                const el = document.getElementById(key);
+                if (el && key !== 'id' && key !== 'created_at' && key !== 'foto_url') {
+                    if (key === 'invitados') {
+                        Array.from(el.options).forEach(opt => opt.selected = data[key]?.includes(opt.value) || false);
+                    } else {
+                        el.value = data[key] || '';
+                    }
+                }
+            });
+            if (data.foto_url) {
+                document.getElementById('preview').src = data.foto_url;
+                document.getElementById('preview').style.display = 'block';
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('modal').style.display = 'none';
+        }
+
+        async function saveCurrent() {
+            let item = {};
+
+            if (currentModule === 'eventos') {
+                item = {
+                    titulo: document.getElementById('titulo').value,
+                    invitados: Array.from(document.getElementById('invitados')?.selectedOptions || []).map(o => o.value),
+                    fecha: document.getElementById('fecha').value,
+                    zona_horaria: document.getElementById('zona_horaria').value,
+                    descripcion: document.getElementById('descripcion').value,
+                    repeticion: document.getElementById('repeticion').value,
+                    recordatorio: document.getElementById('recordatorio').value,
+                    clasificacion: document.getElementById('clasificacion').value,
+                    lugar: document.getElementById('lugar').value
+                };
+            } else if (currentModule === 'ubicaciones') {
+                item = {
+                    titulo: document.getElementById('titulo').value,
+                    direccion: document.getElementById('direccion').value,
+                    coordenadas: document.getElementById('coordenadas').value
+                };
+            } else if (currentModule === 'contactos') {
+                item = {
+                    saludo: document.getElementById('saludo').value,
+                    nombre_completo: document.getElementById('nombre_completo').value,
+                    numero_id: document.getElementById('numero_id').value,
+                    email: document.getElementById('email').value,
+                    telefono: document.getElementById('telefono').value
+                };
+                const fotoInput = document.getElementById('foto');
+                if (fotoInput?.files[0]) {
+                    const file = fotoInput.files[0];
+                    const fileName = `${Date.now()}_${file.name}`;
+                    const { error } = await supabase.storage.from('fotos-contactos').upload(fileName, file);
+                    if (error) {
+                        alert('Error subiendo foto: ' + error.message);
+                        return;
+                    }
+                    const { data: urlData } = supabase.storage.from('fotos-contactos').getPublicUrl(fileName);
+                    item.foto_url = urlData.publicUrl;
+                }
+            }
+
+            const { error } = currentEditId 
+                ? await supabase.from(currentModule).update(item).eq('id', currentEditId)
+                : await supabase.from(currentModule).insert(item);
+
+            if (error) {
+                alert('Error guardando: ' + error.message);
+            } else {
+                closeModal();
+                loadModule(currentModule);
+                alert('¡Guardado exitosamente!');
+            }
+        }
+
+        function deleteItem(module, id) {
+            if (confirm('¿Eliminar este registro?')) {
+                supabase.from(module).delete().eq('id', id).then(() => loadModule(module));
+            }
+        }
+
+        function logout() {
+            sessionStorage.removeItem('loggedIn');
+            window.location.href = 'index.html';
+        }
+
+        // Carga inicial
+        loadDashboard();
+    </script>
+</body>
+</html>
