@@ -5,7 +5,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Gestión de Eventos</title>
+    <title data-key="title-dashboard">Dashboard - Gestión de Eventos</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 0; display: flex; background: #f4f6f9; }
         .sidebar { width: 250px; background: #343a40; color: white; height: 100vh; position: fixed; padding-top: 20px; }
@@ -29,33 +29,54 @@
         #preview { max-width: 200px; margin-top: 10px; border-radius: 8px; }
         .modal-buttons { margin-top: 20px; text-align: right; }
         .modal-buttons button { margin-left: 10px; padding: 10px 20px; }
+        .lang-selector { position: absolute; top: 15px; right: 15px; }
+        .help-btn { position: absolute; top: 55px; right: 15px; background: #ffc107; color: black; padding: 10px 15px; border-radius: 5px; cursor: pointer; }
     </style>
 </head>
 <body>
     <div class="sidebar">
-        <h2>Gestión de Eventos</h2>
-        <a id="menu-dashboard">Dashboard</a>
-        <a id="menu-eventos">Eventos</a>
-        <a id="menu-ubicaciones">Ubicaciones</a>
-        <a id="menu-contactos">Contactos</a>
-        <a id="menu-logout">Cerrar Sesión</a>
+        <h2 data-key="system-name">Gestión de Eventos</h2>
+        <a id="menu-dashboard" data-key="menu-dashboard">Dashboard</a>
+        <a id="menu-eventos" data-key="menu-eventos">Eventos</a>
+        <a id="menu-ubicaciones" data-key="menu-ubicaciones">Ubicaciones</a>
+        <a id="menu-contactos" data-key="menu-contactos">Contactos</a>
+        <a id="menu-logout" data-key="menu-logout">Cerrar Sesión</a>
     </div>
 
     <div class="content" id="main-content">
         <div class="card">
-            <h1>Bienvenido al Sistema</h1>
-            <p>Selecciona un módulo del menú para comenzar.</p>
+            <h1 data-key="welcome">Bienvenido al Sistema</h1>
+            <p data-key="select-module">Selecciona un módulo del menú para comenzar.</p>
         </div>
     </div>
 
-    <!-- Modal -->
+    <button class="help-btn" data-key="help-btn">Ayuda / Help</button>
+
+    <div class="lang-selector">
+        <select id="language-select">
+            <option value="es">Español</option>
+            <option value="en">English</option>
+        </select>
+    </div>
+
+    <!-- Modal de ayuda con tu video -->
+    <div id="help-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:2000; justify-content:center; align-items:center;">
+        <div style="background:white; padding:20px; border-radius:12px; width:90%; max-width:800px; text-align:center;">
+            <h3 data-key="help-title">Tutorial - Cómo usar la aplicación</h3>
+            <iframe width="100%" height="450" src="https://www.youtube.com/embed/_yWkePzxkjc?rel=0&showinfo=0" title="Tutorial de la aplicación" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+            <p data-key="help-desc">Mira este video para aprender a usar el sistema paso a paso.</p>
+            <button onclick="closeHelp()" style="margin-top:15px; padding:10px 25px;" data-key="close">Cerrar</button>
+        </div>
+    </div>
+
+    <!-- Modal CRUD -->
     <div id="modal" class="modal">
         <div class="modal-content">
-            <h2 id="modal-title">Agregar</h2>
+            <h2 id="modal-title" data-key="add">Agregar</h2>
             <div id="modal-form"></div>
             <div class="modal-buttons">
-                <button id="btn-cancelar">Cancelar</button>
-                <button style="background:#28a745; color:white;" id="btn-guardar">Guardar</button>
+                <button id="btn-cancelar" data-key="cancel">Cancelar</button>
+                <button style="background:#28a745; color:white;" id="btn-guardar" data-key="save">Guardar</button>
             </div>
         </div>
     </div>
@@ -63,11 +84,8 @@
     <script type="module">
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
-       
-        const supabaseUrl = 'https://yyqcevvvgsncnerrzqfz.supabase.co';     
-        const supabaseAnonKey = 'sb_publishable_2wJO7aUm5en5BHgOXZnklw_vugKJzjd';           
-        // ================================================
-
+        const supabaseUrl = 'https://yyqcevvvgsncnerrzqfz.supabase.co';
+        const supabaseAnonKey = 'sb_publishable_2wJO7aUm5en5BHgOXZnklw_vugKJzjd';
         const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
         if (!sessionStorage.getItem('loggedIn')) {
@@ -76,60 +94,161 @@
 
         let currentModule = '';
         let currentEditId = null;
+        let currentLang = localStorage.getItem('lang') || 'es';
 
-        // Eventos del menú
+        // Traducciones completas
+        const translations = {
+            es: {
+                titleDashboard: "Dashboard - Gestión de Eventos",
+                systemName: "Gestión de Eventos",
+                welcome: "Bienvenido al Sistema",
+                selectModule: "Selecciona un módulo del menú para comenzar.",
+                menuDashboard: "Dashboard",
+                menuEventos: "Eventos",
+                menuUbicaciones: "Ubicaciones",
+                menuContactos: "Contactos",
+                menuLogout: "Cerrar Sesión",
+                add: "Agregar",
+                edit: "Editar",
+                delete: "Eliminar",
+                cancel: "Cancelar",
+                save: "Guardar",
+                helpTitle: "Tutorial - Cómo usar la aplicación",
+                helpDesc: "Mira este video para aprender a usar el sistema paso a paso.",
+                helpBtn: "Ayuda / Help",
+                close: "Cerrar",
+                saveSuccess: "¡Guardado exitosamente!",
+                saveError: "Error guardando",
+                confirmDelete: "¿Eliminar este registro?",
+                errorLoading: "Error al cargar datos",
+                noData: "No hay datos",
+                nameTitle: "Nombre/Título",
+                detail: "Detalle",
+                actions: "Acciones",
+                addNew: "+ Agregar Nuevo"
+            },
+            en: {
+                titleDashboard: "Dashboard - Event Management",
+                systemName: "Event Management",
+                welcome: "Welcome to the System",
+                selectModule: "Select a module from the menu to start.",
+                menuDashboard: "Dashboard",
+                menuEventos: "Events",
+                menuUbicaciones: "Locations",
+                menuContactos: "Contacts",
+                menuLogout: "Log Out",
+                add: "Add",
+                edit: "Edit",
+                delete: "Delete",
+                cancel: "Cancel",
+                save: "Save",
+                helpTitle: "Tutorial - How to use the app",
+                helpDesc: "Watch this video to learn how to use the system step by step.",
+                helpBtn: "Help",
+                close: "Close",
+                saveSuccess: "Saved successfully!",
+                saveError: "Error saving",
+                confirmDelete: "Delete this record?",
+                errorLoading: "Error loading data",
+                noData: "No data",
+                nameTitle: "Name/Title",
+                detail: "Detail",
+                actions: "Actions",
+                addNew: "+ Add New"
+            }
+        };
+
+        function changeLanguage(lang) {
+            currentLang = lang;
+            localStorage.setItem('lang', lang);
+
+            // Actualizar elementos estáticos con data-key
+            document.querySelectorAll('[data-key]').forEach(el => {
+                const key = el.getAttribute('data-key');
+                if (translations[lang][key]) {
+                    el.textContent = translations[lang][key];
+                }
+            });
+
+            // Actualizar título de página
+            document.title = translations[lang].titleDashboard;
+
+            // Recargar contenido dinámico para que use los textos traducidos
+            if (currentModule) {
+                loadModule(currentModule);
+            } else {
+                loadDashboard();
+            }
+        }
+
+        function showHelp() {
+            document.getElementById('help-modal').style.display = 'flex';
+        }
+
+        function closeHelp() {
+            document.getElementById('help-modal').style.display = 'none';
+        }
+
+        // Listeners
+        document.getElementById('language-select').addEventListener('change', (e) => changeLanguage(e.target.value));
+        document.querySelector('.help-btn').addEventListener('click', showHelp);
+        document.querySelector('#help-modal button').addEventListener('click', closeHelp);
+
+        // Menú
         document.getElementById('menu-dashboard').addEventListener('click', loadDashboard);
         document.getElementById('menu-eventos').addEventListener('click', () => loadModule('eventos'));
         document.getElementById('menu-ubicaciones').addEventListener('click', () => loadModule('ubicaciones'));
         document.getElementById('menu-contactos').addEventListener('click', () => loadModule('contactos'));
         document.getElementById('menu-logout').addEventListener('click', logout);
 
-        // Eventos del modal
         document.getElementById('btn-cancelar').addEventListener('click', closeModal);
         document.getElementById('btn-guardar').addEventListener('click', saveCurrent);
 
         function loadDashboard() {
             document.getElementById('main-content').innerHTML = `
                 <div class="card">
-                    <h1>Bienvenido al Dashboard</h1>
-                    <p>Usa el menú lateral para gestionar los módulos.</p>
+                    <h1>${translations[currentLang].welcome}</h1>
+                    <p>${translations[currentLang].selectModule}</p>
                 </div>`;
         }
 
         async function loadModule(module) {
             currentModule = module;
-            const title = module.charAt(0).toUpperCase() + module.slice(1);
-
             const { data, error } = await supabase.from(module).select('*').order('id', { ascending: false });
 
             if (error) {
-                console.error('Error:', error);
-                alert('Error al cargar datos: ' + error.message);
+                alert(translations[currentLang].saveError + ': ' + error.message);
                 return;
             }
 
+            const title = module.charAt(0).toUpperCase() + module.slice(1);
             const rows = data.map(item => `
                 <tr>
                     <td>${item.titulo || item.nombre_completo || item.direccion || '—'}</td>
                     <td>${item.fecha || item.email || item.coordenadas || '—'}</td>
                     <td>
-                        <button class="edit" data-id="${item.id}">Editar</button>
-                        <button class="delete" data-id="${item.id}">Eliminar</button>
+                        <button class="edit" data-id="${item.id}">${translations[currentLang].edit}</button>
+                        <button class="delete" data-id="${item.id}">${translations[currentLang].delete}</button>
                     </td>
                 </tr>
-            `).join('') || '<tr><td colspan="3">No hay datos</td></tr>';
+            `).join('') || `<tr><td colspan="3">${translations[currentLang].noData}</td></tr>`;
 
             document.getElementById('main-content').innerHTML = `
                 <div class="card">
                     <h1>${title}</h1>
-                    <button class="agregar" id="btn-agregar">+ Agregar Nuevo</button>
+                    <button class="agregar" id="btn-agregar">${translations[currentLang].addNew}</button>
                     <table>
-                        <thead><tr><th>Nombre/Título</th><th>Detalle</th><th>Acciones</th></tr></thead>
+                        <thead>
+                            <tr>
+                                <th>${translations[currentLang].nameTitle}</th>
+                                <th>${translations[currentLang].detail}</th>
+                                <th>${translations[currentLang].actions}</th>
+                            </tr>
+                        </thead>
                         <tbody>${rows}</tbody>
                     </table>
                 </div>`;
 
-            // Eventos dinámicos para botones de la tabla y agregar
             document.getElementById('btn-agregar').addEventListener('click', () => openAdd(module));
 
             document.querySelectorAll('button.edit').forEach(btn => {
@@ -143,57 +262,65 @@
 
         function openAdd(module) {
             currentEditId = null;
-            openModal(module, 'Agregar');
+            openModal(module, translations[currentLang].add);
         }
 
         function openEdit(module, id) {
             currentEditId = id;
             supabase.from(module).select('*').eq('id', id).single().then(({ data, error }) => {
-                if (error) return alert('Error cargando datos');
-                openModal(module, 'Editar');
+                if (error) return alert(translations[currentLang].errorLoading);
+                openModal(module, translations[currentLang].edit);
                 setTimeout(() => fillForm(data), 100);
             });
         }
 
-        async function openModal(module, action) {
+        async function openModal(module, actionTitle) {
             let form = '';
-            const title = `${action} ${module === 'eventos' ? 'Evento' : module === 'ubicaciones' ? 'Ubicación' : 'Contacto'}`;
+            document.getElementById('modal-title').textContent = actionTitle;
 
             if (module === 'eventos') {
                 const { data: contactos } = await supabase.from('contactos').select('nombre_completo');
                 const { data: ubicaciones } = await supabase.from('ubicaciones').select('titulo');
 
                 form = `
-                    <input type="text" id="titulo" placeholder="Título del evento" required>
+                    <input type="text" id="titulo" placeholder="${currentLang === 'es' ? 'Título del evento' : 'Event title'}" required>
                     <select id="invitados" multiple size="5">
                         ${(contactos || []).map(c => `<option value="${c.nombre_completo}">${c.nombre_completo}</option>`).join('')}
                     </select>
                     <input type="datetime-local" id="fecha" required>
-                    <input type="text" id="zona_horaria" placeholder="Ej: America/Bogota">
-                    <textarea id="descripcion" placeholder="Descripción"></textarea>
-                    <select id="repeticion"><option>Ninguna</option><option>Diaria</option><option>Semanal</option><option>Mensual</option></select>
-                    <input type="text" id="recordatorio" placeholder="Recordatorio">
-                    <select id="clasificacion"><option>Conferencia</option><option>Taller</option><option>Seminario</option></select>
+                    <input type="text" id="zona_horaria" placeholder="${currentLang === 'es' ? 'Ej: America/Bogota' : 'Ex: America/Bogota'}">
+                    <textarea id="descripcion" placeholder="${currentLang === 'es' ? 'Descripción' : 'Description'}"></textarea>
+                    <select id="repeticion">
+                        <option>${currentLang === 'es' ? 'Ninguna' : 'None'}</option>
+                        <option>${currentLang === 'es' ? 'Diaria' : 'Daily'}</option>
+                        <option>${currentLang === 'es' ? 'Semanal' : 'Weekly'}</option>
+                        <option>${currentLang === 'es' ? 'Mensual' : 'Monthly'}</option>
+                    </select>
+                    <input type="text" id="recordatorio" placeholder="${currentLang === 'es' ? 'Recordatorio' : 'Reminder'}">
+                    <select id="clasificacion">
+                        <option>${currentLang === 'es' ? 'Conferencia' : 'Conference'}</option>
+                        <option>${currentLang === 'es' ? 'Taller' : 'Workshop'}</option>
+                        <option>${currentLang === 'es' ? 'Seminario' : 'Seminar'}</option>
+                    </select>
                     <select id="lugar">
                         ${(ubicaciones || []).map(u => `<option value="${u.titulo}">${u.titulo}</option>`).join('')}
                     </select>`;
             } else if (module === 'ubicaciones') {
                 form = `
-                    <input type="text" id="titulo" placeholder="Título" required>
-                    <input type="text" id="direccion" placeholder="Dirección completa" required>
-                    <input type="text" id="coordenadas" placeholder="Lat,Long (ej: 4.6097,-74.0817)" required>`;
+                    <input type="text" id="titulo" placeholder="${currentLang === 'es' ? 'Título' : 'Title'}" required>
+                    <input type="text" id="direccion" placeholder="${currentLang === 'es' ? 'Dirección completa' : 'Full address'}" required>
+                    <input type="text" id="coordenadas" placeholder="${currentLang === 'es' ? 'Lat,Long (ej: 4.6097,-74.0817)' : 'Lat,Long (ex: 4.6097,-74.0817)'}" required>`;
             } else if (module === 'contactos') {
                 form = `
-                    <input type="text" id="saludo" placeholder="Saludo (Sr./Sra.)">
-                    <input type="text" id="nombre_completo" placeholder="Nombre completo" required>
-                    <input type="text" id="numero_id" placeholder="Número de identificación" required>
-                    <input type="email" id="email" placeholder="Correo electrónico" required>
-                    <input type="tel" id="telefono" placeholder="Teléfono">
+                    <input type="text" id="saludo" placeholder="${currentLang === 'es' ? 'Saludo (Sr./Sra.)' : 'Salutation (Mr./Mrs.)'}">
+                    <input type="text" id="nombre_completo" placeholder="${currentLang === 'es' ? 'Nombre completo' : 'Full name'}" required>
+                    <input type="text" id="numero_id" placeholder="${currentLang === 'es' ? 'Número de identificación' : 'ID number'}" required>
+                    <input type="email" id="email" placeholder="${currentLang === 'es' ? 'Correo electrónico' : 'Email'}" required>
+                    <input type="tel" id="telefono" placeholder="${currentLang === 'es' ? 'Teléfono' : 'Phone'}">
                     <input type="file" id="foto" accept="image/*">
                     <img id="preview" style="display:none;">`;
             }
 
-            document.getElementById('modal-title').textContent = title;
             document.getElementById('modal-form').innerHTML = form;
             document.getElementById('modal').style.display = 'flex';
         }
@@ -267,16 +394,16 @@
                 : await supabase.from(currentModule).insert(item);
 
             if (error) {
-                alert('Error guardando: ' + error.message);
+                alert(translations[currentLang].saveError + ': ' + error.message);
             } else {
                 closeModal();
                 loadModule(currentModule);
-                alert('¡Guardado exitosamente!');
+                alert(translations[currentLang].saveSuccess);
             }
         }
 
         function deleteItem(module, id) {
-            if (confirm('¿Eliminar este registro?')) {
+            if (confirm(translations[currentLang].confirmDelete)) {
                 supabase.from(module).delete().eq('id', id).then(() => loadModule(module));
             }
         }
@@ -288,6 +415,7 @@
 
         // Carga inicial
         loadDashboard();
+        changeLanguage(currentLang);
     </script>
 </body>
 </html>
