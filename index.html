@@ -5,7 +5,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Gestión de Eventos</title>
+    <title data-key="title-login">Login - Gestión de Eventos</title>
     <style>
         body { 
             font-family: Arial, sans-serif; 
@@ -52,84 +52,107 @@
             font-weight: bold;
         }
         .attempts { color: #888; font-size: 14px; margin-top: 10px; }
+        .lang-selector { margin-top: 20px; }
     </style>
 </head>
 <body>
     <div class="login-box">
-        <h2>Gestión de Eventos</h2>
-        <p style="color: #666; margin-bottom: 20px;">Acceso restringido</p>
+        <h2 data-key="system-name">Gestión de Eventos</h2>
+        <p style="color: #666; margin-bottom: 20px;" data-key="restricted-access">Acceso restringido</p>
         
-        <input type="text" id="username" placeholder="Usuario" autocomplete="username">
-        <input type="password" id="password" placeholder="Contraseña" autocomplete="current-password">
+        <input type="text" id="username" data-key="placeholder-username" placeholder="Usuario" autocomplete="username">
+        <input type="password" id="password" data-key="placeholder-password" placeholder="Contraseña" autocomplete="current-password">
         
-        <button onclick="login()">Iniciar Sesión</button>
+        <button onclick="login()" data-key="login-btn">Iniciar Sesión</button>
         
         <p id="msg"></p>
         <p class="attempts" id="attempts-left"></p>
+
+        <div class="lang-selector">
+            <select id="language-select">
+                <option value="es">Español</option>
+                <option value="en">English</option>
+            </select>
+        </div>
     </div>
 
     <script>
-        
-        const USUARIO_CORRECTO = "Andy2005";        
-        const CONTRASENA_CORRECTA = "sanchezandys2";  
-        // ============================================
+        // Traducciones completas
+        const translations = {
+            es: {
+                "title-login": "Login - Gestión de Eventos",
+                "system-name": "Gestión de Eventos",
+                "restricted-access": "Acceso restringido",
+                "placeholder-username": "Usuario",
+                "placeholder-password": "Contraseña",
+                "login-btn": "Iniciar Sesión",
+                "empty-fields": "Por favor, complete ambos campos",
+                "success-login": "¡Acceso concedido! Redirigiendo...",
+                "invalid-credentials": "Usuario o contraseña incorrectos"
+            },
+            en: {
+                "title-login": "Login - Event Management",
+                "system-name": "Event Management",
+                "restricted-access": "Restricted Access",
+                "placeholder-username": "Username",
+                "placeholder-password": "Password",
+                "login-btn": "Log In",
+                "empty-fields": "Please fill both fields",
+                "success-login": "Access granted! Redirecting...",
+                "invalid-credentials": "Incorrect username or password"
+            }
+        };
 
-        let intentosFallidos = 0;
-        const MAX_INTENTOS = 5;
+        let currentLang = localStorage.getItem('lang') || 'es';
+
+        function changeLanguage(lang) {
+            currentLang = lang;
+            localStorage.setItem('lang', lang);
+            document.querySelectorAll('[data-key]').forEach(el => {
+                const key = el.getAttribute('data-key');
+                if (translations[lang][key]) {
+                    if (el.tagName === 'INPUT') el.placeholder = translations[lang][key];
+                    else if (el.tagName === 'TITLE') document.title = translations[lang][key];
+                    else el.textContent = translations[lang][key];
+                }
+            });
+        }
+
+        // Listener para el selector de idioma
+        document.getElementById('language-select').addEventListener('change', (e) => {
+            changeLanguage(e.target.value);
+        });
+
+        // Credenciales
+        const USUARIO_CORRECTO = "Andy2005";
+        const CONTRASENA_CORRECTA = "sanchezandys2";
 
         function login() {
             const user = document.getElementById('username').value.trim();
             const pass = document.getElementById('password').value;
-
             const msg = document.getElementById('msg');
-            const attempts = document.getElementById('attempts-left');
 
-            // Limpiar mensaje anterior
             msg.textContent = '';
-            attempts.textContent = '';
 
-            if (user === '' || pass === '') {
-                msg.textContent = 'Por favor, complete ambos campos';
+            if (!user || !pass) {
+                msg.textContent = translations[currentLang]["empty-fields"];
                 return;
             }
 
             if (user === USUARIO_CORRECTO && pass === CONTRASENA_CORRECTA) {
-                // Login exitoso
                 sessionStorage.setItem('loggedIn', 'true');
-                sessionStorage.setItem('user', user);
                 msg.style.color = 'green';
-                msg.textContent = '¡Acceso concedido! Redirigiendo...';
-                setTimeout(() => {
-                    window.location.href = 'dashboard.html';
-                }, 1000);
+                msg.textContent = translations[currentLang]["success-login"];
+                setTimeout(() => window.location.href = 'dashboard.html', 800);
             } else {
-                // Login fallido
-                intentosFallidos++;
-                const restantes = MAX_INTENTOS - intentosFallidos;
-                
-                msg.textContent = 'Usuario o contraseña incorrectos';
-                
-                if (restantes > 0) {
-                    attempts.textContent = `Intentos restantes: ${restantes}`;
-                } else {
-                    attempts.textContent = 'Demasiados intentos. Acceso bloqueado temporalmente.';
-                    document.querySelector('button').disabled = true;
-                    setTimeout(() => {
-                        intentosFallidos = 0;
-                        document.querySelector('button').disabled = false;
-                        attempts.textContent = '';
-                        msg.textContent = 'Puede intentarlo de nuevo';
-                    }, 60000); // Bloqueo por 1 minuto
-                }
+                msg.textContent = translations[currentLang]["invalid-credentials"];
             }
         }
 
-        // Permitir login con Enter
-        document.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                login();
-            }
-        });
+        document.addEventListener('keypress', e => { if (e.key === 'Enter') login(); });
+
+        // Inicializar idioma al cargar
+        changeLanguage(currentLang);
     </script>
 </body>
 </html>
